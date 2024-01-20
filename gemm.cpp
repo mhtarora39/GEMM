@@ -23,11 +23,24 @@
 #define N 64
 #endif
 
+#ifdef DEBUG
+#define BLOCK 8
+#define BLOCK_Y 4
+#define BLOCK_X 2
+#else  
+#define BLOCK 8
+#define BLOCK_Y 4
+#define BLOCK_X 2
+// #define BLOCK 64
+// #define BLOCK_Y 16
+// #define BLOCK_X 16
+#endif
+
 // aligned?
 float A[N * N] __attribute__((aligned(64)));
 float B[N * N] __attribute__((aligned(64)));
 float C[N * N] __attribute__((aligned(64)));
-float val[N * N] __attribute__((aligned(64)));
+//float val[N * N] __attribute__((aligned(64)));
 
 __m256 *Am = (__m256 *)A;
 __m256 *Bm = (__m256 *)B;
@@ -58,9 +71,38 @@ __m256 *Bfm = (__m256 *)Bf;
               << "GFLOPs/s " << gflops << std::endl;                                           \
   }()
 
-#define BLOCK 64
-#define BLOCK_Y 16
-#define BLOCK_X 16
+void matmul_custom()
+{
+}
+
+void generate_mat()
+{
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = 0; j < N; j++)
+    {
+      A[i * N + j] = i * N + j;
+      Bf[i * N + j] = i * N + j;
+      C[i * N + j] = 0;
+    }
+  }
+}
+
+void display_mat()
+{
+#ifdef DEBUG
+  std::cout << "*******************************\n";
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = 0; j < N; j++)
+    {
+      std::cout << C[i * N + j] << " ";
+    }
+    std::cout << "\n";
+  }
+  std::cout << "*******************************\n";
+#endif
+}
 
 void matmul(int sy, int ey)
 {
@@ -91,8 +133,10 @@ void matmul(int sy, int ey)
 
       for (int iy = 0; iy < BLOCK_Y; iy++)
       {
+        //std::cout << "Here X , Y = " << iy << iy << std::endl;
         for (int ix = 0; ix < BLOCK_X; ix++)
         {
+          //std::cout << "Here X , Y = " << iy << ix << std::endl;
           Cm[((y + iy) * N + x + ix * BLOCK) / 8] = acc[iy][ix];
         }
       }
@@ -107,6 +151,8 @@ int test()
 
 int main()
 {
+  generate_mat();
+  std::cout << "BLOCK_X" << BLOCK_X << std::endl;
   TIME_IT(matmul, 0, N);
-  std::cout << C[0] << std::endl;
+  display_mat();
 }
