@@ -24,23 +24,27 @@
 #endif
 
 #ifdef DEBUG
+// #define BLOCK 8
+// #define BLOCK_Y 4
+// #define BLOCK_X 2
+#define BLOCK 
+#define BLOCK_Y 
+#define BLOCK_X 4
+#else
+// #define BLOCK 8
+// #define BLOCK_Y 4
+// #define BLOCK_X 2
 #define BLOCK 8
 #define BLOCK_Y 4
 #define BLOCK_X 2
-#else  
-#define BLOCK 8
-#define BLOCK_Y 4
-#define BLOCK_X 2
-// #define BLOCK 64
-// #define BLOCK_Y 16
-// #define BLOCK_X 16
 #endif
 
+// g++ ./gemm.cpp -O3 -DN=128 -DDEBUG -mavx -march=native
 // aligned?
 float A[N * N] __attribute__((aligned(64)));
 float B[N * N] __attribute__((aligned(64)));
 float C[N * N] __attribute__((aligned(64)));
-//float val[N * N] __attribute__((aligned(64)));
+// float val[N * N] __attribute__((aligned(64)));
 
 __m256 *Am = (__m256 *)A;
 __m256 *Bm = (__m256 *)B;
@@ -82,8 +86,9 @@ void generate_mat()
     for (int j = 0; j < N; j++)
     {
       A[i * N + j] = i * N + j;
-      Bf[i * N + j] = i * N + j;
+      B[i * N + j] = i * N + j;
       C[i * N + j] = 0;
+
     }
   }
 }
@@ -106,13 +111,6 @@ void display_mat()
 
 void matmul(int sy, int ey)
 {
-  // 136.77 GFLOPS on single core numpy
-  // 4.9 GHz is max boost for 5950X
-  // 32 FLOPS/cycle (16 FMAs, aka 2x 8 single wide / 32 byte FMAs)
-  // theoretical max is 156.8 GFLOPS, we see 150
-  // multicore theo max = 2508.8 GFLOPS, we see 1501.434299
-
-  // Bf = (y/8, k, 8)
   for (int y = sy; y < ey; y += BLOCK_Y)
   {
     for (int x = 0; x < N; x += BLOCK * BLOCK_X)
@@ -133,10 +131,8 @@ void matmul(int sy, int ey)
 
       for (int iy = 0; iy < BLOCK_Y; iy++)
       {
-        //std::cout << "Here X , Y = " << iy << iy << std::endl;
         for (int ix = 0; ix < BLOCK_X; ix++)
         {
-          //std::cout << "Here X , Y = " << iy << ix << std::endl;
           Cm[((y + iy) * N + x + ix * BLOCK) / 8] = acc[iy][ix];
         }
       }
@@ -152,7 +148,17 @@ int test()
 int main()
 {
   generate_mat();
-  std::cout << "BLOCK_X" << BLOCK_X << std::endl;
+
+  // preswizzle
+  for (int y = 0; y < N; y+=8) {
+    for (int x = 0; x < N; x++) {
+      for (int iy = 0; iy < 8; iy++) {
+        //y = 1 , x = 1 
+        Bf[y*N + x*8 + iy] = B[(y+iy)*N + x];
+      }
+    }
+  }
+  std::cout << "BLOCK_X " << BLOCK_X << std::endl;
   TIME_IT(matmul, 0, N);
   display_mat();
 }

@@ -5,7 +5,7 @@ import time
 import sys
 
 def matrix_multiply(A, B):
-    return np.dot(A, B)
+    return A @ B.T
 
 def measure_gflops(matrix_size, num_iterations=100):
     A = np.random.rand(matrix_size, matrix_size).astype(np.float32)
@@ -20,7 +20,7 @@ def measure_gflops(matrix_size, num_iterations=100):
     for _ in range(num_iterations):
         start_time = time.time()
         result = matrix_multiply(A, B)
-        print(result)
+        #print(result)
         end_time = time.time()
         total_time += end_time - start_time
 
